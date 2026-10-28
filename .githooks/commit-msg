@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# =====================================================================
+# Hook commit-msg: valida que el mensaje siga Conventional Commits.
+#
+#   tipo(alcance opcional)!: descripción
+#
+# Ejemplos válidos:
+#   feat: agregar login con Google
+#   fix(api): corregir timeout en /usuarios
+#   refactor(core)!: cambiar formato de configuración
+#
+# PERSONALIZA: la lista TIPOS y MAX_LARGO.
+# Saltar una vez (no recomendado): git commit --no-verify
+# =====================================================================
+set -euo pipefail
+
+TIPOS="feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert"
+MAX_LARGO=72
+
+archivo_msg="${1:?Uso: commit-msg <archivo-del-mensaje>}"
+
+# Primera línea que no sea comentario ni esté vacía = encabezado.
+encabezado="$(grep -v '^#' "$archivo_msg" | sed '/^[[:space:]]*$/d' | head -n 1 || true)"
+
+if [[ -z "$encabezado" ]]; then
+  echo "✖ El mensaje de commit está vacío." >&2
+  exit 1
+fi
+
+# Mensajes generados por git: los dejamos pasar.
+if [[ "$encabezado" =~ ^(Merge|Revert\ \"|fixup!|squash!|amend!) ]]; then
+  exit 0
+fi
+
+patron="^(${TIPOS})(\([a-z0-9._/-]+\))?!?: [^[:space:]].*$"
+
+if [[ ! "$encabezado" =~ $patron ]]; then
+  cat >&2 <<MSG
+✖ Mensaje de commit inválido:
+    "$encabezado"
+
+  Formato esperado:  tipo(alcance): descripción
+  Tipos permitidos:  ${TIPOS//|/, }
+  Ejemplos:
+    feat: agregar exportación a CSV
+    fix(auth): renovar token antes de que expire
+    docs: actualizar instrucciones de instalación
+MSG
+  exit 1
+fi
+
+if (( ${#encabezado} > MAX_LARGO )); then
+  echo "✖ El encabezado tiene ${#encabezado} caracteres (máximo ${MAX_LARGO})." >&2
+  echo "  Mueve los detalles al cuerpo del mensaje, después de una línea en blanco." >&2
+  exit 1
+fi
+
+exit 0
