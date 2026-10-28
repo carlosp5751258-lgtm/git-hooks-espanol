@@ -12,7 +12,7 @@ cd /ruta/a/tu/repo && git config core.hooksPath .githooks
 ## ¿Quieres el pack completo?
 
 Esta es una **muestra gratuita**. El pack completo está en
-**[Pack Git Hooks y Pre-commit (bloqueo de secretos, archivos grandes, console.log, pre-push con tests, husky + commitlint)](https://claudecodees.gumroad.com/l/git-hooks-precommit)**: paga lo que quieras, desde 1 USD.
+**[Pack Git Hooks y Pre-commit (bloqueo de secretos, archivos grandes, console.log, pre-push con tests, husky + commitlint)](https://claudecodees.gumroad.com/l/git-hooks-precommit)**: paga lo que quieras, desde 2 USD.
 
 📝 Tutorial paso a paso en español: https://dev.to/carlosp5751258lgtm/valida-conventional-commits-con-un-hook-de-git-en-bash-sin-instalar-nada-487l
 
