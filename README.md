@@ -1,21 +1,34 @@
-# Hook commit-msg en bash para Conventional Commits (en español)
+# Git hooks en español (gratis)
 
-Valida que tus mensajes de commit sigan Conventional Commits (feat, fix, docs…). Bash puro, sin Node ni Python.
+Hooks de git en bash, sin dependencias, que validan tus commits y frenan secretos antes de que lleguen a GitHub.
 
-## Uso
+**Gratis y de código abierto (MIT).** Úsalo en tus proyectos y en los de tus clientes.
+
+## Qué incluye
+
+- `commit-msg`: valida Conventional Commits
+- `pre-commit`: bloquea llaves de AWS, GitHub, Stripe y Slack, `.env`, llaves privadas y archivos grandes
+- `instalar-hooks.sh`: los activa con un comando
+
+## Instalación
 
 ```bash
-cp -r .githooks /ruta/a/tu/repo/
-cd /ruta/a/tu/repo && git config core.hooksPath .githooks
+git clone https://github.com/carlosp5751258-lgtm/git-hooks-espanol.git
+cp -r git-hooks-espanol/.githooks .
+bash git-hooks-espanol/instalar-hooks.sh
 ```
 
-## ¿Quieres el pack completo?
 
-Esta es una **muestra gratuita**. El pack completo está en
-**[Pack Git Hooks y Pre-commit (bloqueo de secretos, archivos grandes, console.log, pre-push con tests, husky + commitlint)](https://claudecodees.gumroad.com/l/git-hooks-precommit)**: paga lo que quieras, desde 2 USD.
 
-📝 Tutorial paso a paso en español: https://dev.to/carlosp5751258lgtm/valida-conventional-commits-con-un-hook-de-git-en-bash-sin-instalar-nada-487l
+## ¿Quieres la versión completa?
 
-Más recursos gratis: [claude-code-es](https://github.com/carlosp5751258-lgtm/claude-code-es)
+Esta es la versión gratis y funciona sola. La **versión Pro** añade:
 
-Licencia MIT (solo esta muestra).
+- Hook `pre-push` que corre tus tests (npm, pytest, go o make)
+- 3 presets de pre-commit: Python, JS/TS y multilenguaje
+- Configuración de husky + commitlint + lint-staged para Node
+
+👉 [Ver la versión Pro](https://claudecodees.gumroad.com/l/git-hooks-precommit) · paga lo que quieras desde 2 USD. Comprarla también ayuda a que sigamos publicando recursos gratis.
+
+---
+Parte de **[Ctrl+IA](https://carlosp5751258-lgtm.github.io/ctrlia/)**: recursos en español para programar con IA. Hecho por Carlos P.

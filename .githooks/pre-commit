@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# =====================================================================
+# Hook pre-commit: revisa SOLO lo que estás por commitear (staged) y
+# bloquea el commit si encuentra:
+#   1. Archivos grandes (más de MAX_KB).
+#   2. Archivos sensibles por nombre (.env, llaves privadas...).
+#   3. Posibles secretos en las líneas agregadas (tokens, llaves).
+#   4. Sentencias de depuración olvidadas (console.log, debugger,
+#      breakpoint(), pdb...).
+#
+# PERSONALIZA con variables de entorno o editando los valores:
+#   MAX_KB=1024 git commit ...          -> cambia el límite de tamaño
+#   PERMITIR_DEBUG=1 git commit ...     -> desactiva la revisión de debug
+# Para ignorar una línea concreta (ej. un ejemplo de documentación),
+# agrega en esa línea el comentario:  permitir-secreto
+# Saltar todo una vez (no recomendado):  git commit --no-verify
+# =====================================================================
+set -uo pipefail
+
+MAX_KB="${MAX_KB:-500}"
+PERMITIR_DEBUG="${PERMITIR_DEBUG:-0}"
+
+# Nombres de archivo que nunca deberían entrar al repo.
+ARCHIVOS_PROHIBIDOS='(^|/)(\.env(\.[^/]*)?|id_rsa|id_ed25519|.*\.pem|.*\.p12|.*\.pfx|credentials\.json)$'
+# Plantillas de ejemplo permitidas.
+ARCHIVOS_PERMITIDOS='(^|/)\.env\.(example|ejemplo|sample|template)$'
+
+# Patrones de secretos comunes (expresiones regulares extendidas).
+PATRONES_SECRETOS=(
+  'AKIA[0-9A-Z]{16}'                                   # AWS Access Key ID
+  '-----BEGIN ([A-Z]+ )?PRIVATE KEY-----'              # Llaves privadas PEM
+  'gh[pousr]_[A-Za-z0-9]{36,}'                         # Tokens de GitHub
+  'github_pat_[A-Za-z0-9_]{22,}'                       # Tokens finos de GitHub
+  'xox[baprs]-[A-Za-z0-9-]{10,}'                       # Tokens de Slack
+  'sk_live_[A-Za-z0-9]{20,}'                           # Stripe (producción)
+  'AIza[0-9A-Za-z_-]{35}'                              # Google API key
+  'sk-[A-Za-z0-9_-]{32,}'                              # Llaves estilo OpenAI/Anthropic
+  '(password|passwd|secret|api_?key|token)[[:space:]]*[:=][[:space:]]*["'\''][^"'\'' ]{8,}["'\'']'  # Asignaciones con valor literal
+)
+
+rojo=$'\033[31m'; amarillo=$'\033[33m'; normal=$'\033[0m'
+[[ -t 2 ]] || { rojo=""; amarillo=""; normal=""; }
+
+errores=0
+falla() { echo "${rojo}✖${normal} $*" >&2; errores=$((errores + 1)); }
+
+# Líneas agregadas (sin el "+" inicial) de un archivo en el staging.
+lineas_agregadas() {
+  git diff --cached --no-color -U0 -- "$1" | grep '^+' | grep -v '^+++' | cut -c2- || true
+}
+
+while IFS= read -r -d '' archivo; do
+  # --- 1. Tamaño ---------------------------------------------------
+  bytes="$(git cat-file -s ":$archivo" 2>/dev/null || echo 0)"
+  if (( bytes > MAX_KB * 1024 )); then
+    falla "Archivo grande: $archivo ($((bytes / 1024)) KB > ${MAX_KB} KB). Usa Git LFS o exclúyelo."
+  fi
+
+  # --- 2. Nombre sensible ------------------------------------------
+  if [[ "$archivo" =~ $ARCHIVOS_PROHIBIDOS ]] && ! [[ "$archivo" =~ $ARCHIVOS_PERMITIDOS ]]; then
+    falla "Archivo sensible: $archivo. Agrégalo a .gitignore."
+  fi
+
+  agregadas="$(lineas_agregadas "$archivo" | grep -v 'permitir-secreto' || true)"
+  [[ -z "$agregadas" ]] && continue
+
+  # --- 3. Secretos -------------------------------------------------
+  for patron in "${PATRONES_SECRETOS[@]}"; do
+    if coincidencia="$(grep -iE -m1 -e "$patron" <<<"$agregadas")"; then
+      # Mostramos solo el inicio para no imprimir el secreto completo.
+      falla "Posible secreto en $archivo: ${coincidencia:0:40}..."
+      break   # Un aviso por archivo es suficiente
+    fi
+  done
+
+  # --- 4. Depuración -----------------------------------------------
+  if [[ "$PERMITIR_DEBUG" != "1" ]]; then
+    case "$archivo" in
+      *.js|*.jsx|*.ts|*.tsx|*.mjs|*.cjs|*.vue|*.svelte)
+        patron_debug='console\.log\(|^[[:space:]]*debugger;?[[:space:]]*$' ;;
+      *.py)
+        patron_debug='breakpoint\(\)|import i?pdb|i?pdb\.set_trace\(\)' ;;
+      *.rb)
+        patron_debug='binding\.(pry|irb)|byebug' ;;
+      *.go)
+        patron_debug='^[[:space:]]*spew\.Dump\(' ;;
+      *)
+        patron_debug='' ;;
+    esac
+    if [[ -n "$patron_debug" ]] && coincidencia="$(grep -nE -m1 -e "$patron_debug" <<<"$agregadas")"; then
+      falla "Sentencia de depuración en $archivo: ${coincidencia#*:}"
+    fi
+  fi
+done < <(git diff --cached --name-only -z --diff-filter=ACMR)
+
+if (( errores > 0 )); then
+  echo "" >&2
+  echo "${amarillo}Commit bloqueado: ${errores} problema(s).${normal} Corrígelos y vuelve a intentar." >&2
+  echo "Si es un falso positivo, agrega 'permitir-secreto' en esa línea o usa --no-verify." >&2
+  exit 1
+fi
+exit 0
