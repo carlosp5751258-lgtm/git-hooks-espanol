@@ -1,5 +1,7 @@
 # Git hooks en español (gratis)
 
+🇬🇧 [Read in English](README.en.md)
+
 Hooks de git en bash, sin dependencias, que validan tus commits y frenan secretos antes de que lleguen a GitHub.
 
 **Gratis y de código abierto (MIT).** Úsalo en tus proyectos y en los de tus clientes.
@@ -29,6 +31,10 @@ Esta es la versión gratis y funciona sola. La **versión Pro** añade:
 - Configuración de husky + commitlint + lint-staged para Node
 
 👉 [Ver la versión Pro](https://claudecodees.gumroad.com/l/git-hooks-precommit) · paga lo que quieras desde 2 USD. Comprarla también ayuda a que sigamos publicando recursos gratis.
+
+## Licencia
+
+MIT: puedes usarlo, modificarlo y compartirlo, también en proyectos comerciales. Ver [LICENSE](LICENSE).
 
 ---
 Parte de **[Ctrl+IA](https://ctrlia.dev/)**: recursos en español para programar con IA. Hecho por Carlos P.
